@@ -1,4 +1,3 @@
-.gitignore
 data/period_data.json
 data/pending_flag.json
 __pycache__/
