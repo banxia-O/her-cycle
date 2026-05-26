@@ -80,6 +80,9 @@ python scripts/period_tracker.py --set-duration 4
 
 # 修改当前周期持续天数（仅本次）
 python scripts/period_tracker.py --override-duration 6
+
+# 标记 blend flag 已送达（agent 发完消息后调用）
+python scripts/period_tracker.py --mark-delivered
 ```
 
 ---
@@ -160,7 +163,8 @@ cron 跑完写 `data/pending_flag.json`：
 
 - Agent 在 user 下次主动发起对话时读取 flag，在正常聊天上下文中带出
 - 到兜底时间仍未 delivered，agent 主动发起（以自然聊天语气，不是系统通知）
-- Flag delivered 后标记 `"delivered": true`，当天不再重复触发
+- **发完消息后必须调用 `--mark-delivered`**，否则兜底 cron 会重复送
+- `--check` 每次运行时自动清理昨天及更早的残留 flag（防止 delivered=false 的旧 flag 永远存在）
 
 ---
 

@@ -485,7 +485,40 @@ def cmd_add(args):
     print(f"Predicted next: {predicted.isoformat()}")
 
 
+def _clear_stale_flag():
+    """Delete flag file if it was generated before today (stale, never delivered)."""
+    if not os.path.exists(FLAG_FILE):
+        return
+    try:
+        with open(FLAG_FILE, encoding="utf-8") as f:
+            flag = json.load(f)
+        generated = datetime.fromisoformat(flag.get("generated_at", "1970-01-01")).date()
+        if generated < date.today():
+            os.remove(FLAG_FILE)
+    except Exception:
+        pass
+
+
+def cmd_mark_delivered(args):
+    """Mark pending flag as delivered so it won't re-fire."""
+    if not os.path.exists(FLAG_FILE):
+        print("OK: no flag file")
+        return
+    try:
+        with open(FLAG_FILE, encoding="utf-8") as f:
+            flag = json.load(f)
+        flag["delivered"] = True
+        with open(FLAG_FILE, "w", encoding="utf-8") as f:
+            json.dump(flag, f, indent=2, ensure_ascii=False)
+        print("OK: flag marked delivered")
+    except Exception as e:
+        sys.exit(f"ERROR: {e}")
+
+
 def cmd_check(args):
+    # Clear any flag left over from a previous day before deciding what to do today
+    _clear_stale_flag()
+
     data = load_data()
     if data is None:
         sys.exit(0)
@@ -642,6 +675,7 @@ examples:
   %(prog)s --set-fallback 22:00
   %(prog)s --set-duration 4
   %(prog)s --override-duration 6
+  %(prog)s --mark-delivered
 """,
     )
 
@@ -662,6 +696,8 @@ examples:
                        help="Set default period duration")
     group.add_argument("--override-duration", type=int, metavar="DAYS",
                        help="Override current cycle's period duration")
+    group.add_argument("--mark-delivered",   action="store_true",
+                       help="Mark pending blend flag as delivered")
 
     # Init-specific optional args
     parser.add_argument("--last-period", metavar="YYYY-MM-DD",
@@ -695,6 +731,8 @@ examples:
         cmd_set_duration(args)
     elif args.override_duration is not None:
         cmd_override_duration(args)
+    elif args.mark_delivered:
+        cmd_mark_delivered(args)
 
 
 if __name__ == "__main__":
